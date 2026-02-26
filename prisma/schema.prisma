@@ -17,20 +17,42 @@ enum Role {
   ADMIN
 }
 
+enum BookingStatus {
+  PENDING
+  CONFIRMED
+  CANCELLED
+  COMPLETED
+}
+
+enum DiscountType {
+  PERCENTAGE
+  FIXED
+}
+
+enum PaymentGateway {
+  STRIPE
+  PAYPAL
+}
+
+
 model User {
   id            String    @id @default(cuid())
+  email         String    @unique
   name          String?
-  email         String?   @unique
-  password      String?   // campo para credenciales (no usado por OAuth)
+  image         String?
+  password      String?
   role          Role      @default(USER)
   emailVerified DateTime?
-  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
-  // tablas que Auth.js espera (si usas adapter)
   accounts      Account[]
   sessions      Session[]
+  addresses     Address[]
+  bookings      Booking[]
+  reviews       Review[]
 
-  @@map("users")
+  @@index([email])
 }
 
 model Account {
@@ -48,8 +70,8 @@ model Account {
   session_state     String?
 
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
   @@unique([provider, providerAccountId])
-  @@map("accounts")
 }
 
 model Session {
@@ -57,14 +79,164 @@ model Session {
   sessionToken String   @unique
   userId       String
   expires      DateTime
-  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
-  @@map("sessions")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
-model VerificationToken {
-  identifier String
-  token      String
-  expires    DateTime
-  @@unique([identifier, token])
-  @@map("verification_tokens")
+
+
+model Location {
+  id        String   @id @default(cuid())
+  city      String   // Madrid, Barcelona...
+  address   String   // Calle exacta
+  capacity  Int      // Capacidad máxima física
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  workshops Workshop[]
+
+  @@index([city])
+}
+
+
+
+model Category {
+  id        String     @id @default(cuid())
+  name      String     @unique
+  slug      String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+
+  workshops WorkshopCategory[]
+}
+
+model WorkshopCategory {
+  workshopId String
+  categoryId String
+
+  workshop Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([workshopId, categoryId])
+}
+
+model Workshop {
+  id             String   @id @default(cuid())
+  title          String
+  slug           String   @unique
+  description    String
+  price          Float
+  imageUrls      String[]
+  videoUrls      String[]
+  duration       Int      // minutos
+  date           DateTime
+  availableSlots Int
+  locationId     String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+  isActive       Boolean  @default(true)
+
+  location       Location @relation(fields: [locationId], references: [id])
+  bookings       Booking[]
+  reviews        Review[]
+  categories     WorkshopCategory[]
+  coupons        CouponWorkshop[]
+
+  @@index([date])
+  @@index([locationId, date])
+  @@index([isActive])
+}
+
+model Booking {
+  id           String        @id @default(cuid())
+  userId       String
+  workshopId   String
+  participants Int           @default(1)
+  totalPrice   Float
+  status       BookingStatus @default(PENDING)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+
+  user     User     @relation(fields: [userId], references: [id])
+  workshop Workshop @relation(fields: [workshopId], references: [id])
+  payment  Payment?
+
+  @@index([userId])
+  @@index([workshopId])
+}
+
+model Payment {
+  id        String   @id @default(cuid())
+  bookingId String   @unique
+  gateway   PaymentGateway
+  gatewayId String   @unique // stripe session id / paypal order id
+  amount    Float
+  currency  String   @default("EUR")
+  status    String
+  method    String?  // card / apple_pay / google_pay
+  createdAt DateTime @default(now())
+
+  booking Booking @relation(fields: [bookingId], references: [id])
+}
+
+model Coupon {
+  id            String   @id @default(cuid())
+  code          String   @unique
+  description   String?
+  discountType  DiscountType
+  discountValue Float
+  minPurchase   Float?
+  validFrom     DateTime
+  validUntil    DateTime
+  usageLimit    Int?
+  usedCount     Int      @default(0)
+  appliesToAll  Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  workshops CouponWorkshop[]
+
+  @@index([code])
+  @@index([validUntil])
+}
+
+model CouponWorkshop {
+  couponId   String
+  workshopId String
+
+  coupon   Coupon   @relation(fields: [couponId], references: [id], onDelete: Cascade)
+  workshop Workshop @relation(fields: [workshopId], references: [id], onDelete: Cascade)
+
+  @@id([couponId, workshopId])
+}
+
+model Review {
+  id         String   @id @default(cuid())
+  rating     Int
+  comment    String?
+  images     String[]
+  userId     String
+  workshopId String
+  createdAt  DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id])
+  workshop Workshop @relation(fields: [workshopId], references: [id])
+
+  @@index([workshopId])
+  @@index([userId])
+}
+
+model Address {
+  id        String   @id @default(cuid())
+  street    String
+  city      String
+  zipCode   String
+  country   String   @default("ES")
+  userId    String
+  isDefault Boolean  @default(false)
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId])
 }

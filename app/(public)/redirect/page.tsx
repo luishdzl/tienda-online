@@ -1,4 +1,4 @@
-import { auth } from "@/auth";
+import { auth } from "@/features/auth/auth.config";
 import { redirect } from "next/navigation";
 
 export default async function RedirectPage() {
@@ -6,6 +6,9 @@ export default async function RedirectPage() {
 
   if (!session?.user) redirect("/login");
 
-  if (session.user.role === "ADMIN") redirect("/admin");
-  return redirect("/dashboard");
+  if (session.user.role === "ADMIN") {
+    redirect("/admin");
+  }
+
+  redirect("/dashboard");
 }

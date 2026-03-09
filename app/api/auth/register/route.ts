@@ -9,20 +9,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
 
   const exists = await prisma.user.findUnique({ where: { email } });
-
   if (exists)
     return NextResponse.json({ error: "Usuario ya existe" }, { status: 400 });
 
   const hashed = await bcrypt.hash(password, 10);
 
-  await prisma.user.create({
-    data: {
-      name,
-      email,
-      password: hashed,
-      role: "USER",
-    },
-  });
-
+  await prisma.user.create({ data: { name, email, password: hashed, role: "USER" } });
   return NextResponse.json({ success: true });
 }

@@ -1,0 +1,84 @@
+{
+  "users": [
+    {
+      "email": "admin@admin.com",
+      "name": "Admin",
+      "role": "ADMIN",
+      "extraPermissions": ["users.manage", "coupons.manage"]
+    },
+    {
+      "email": "user@user.com",
+      "name": "Test User",
+      "role": "USER",
+      "extraPermissions": ["workshops.read"]
+    }
+  ],
+
+  "permissions": [
+    { "name": "admin.access", "description": "Acceso al panel admin" },
+    { "name": "users.read", "description": "Ver usuarios" },
+    { "name": "users.manage", "description": "Administrar usuarios" },
+    { "name": "workshops.read", "description": "Ver workshops" },
+    { "name": "workshops.manage", "description": "Administrar workshops" },
+    { "name": "bookings.create", "description": "Crear reservas" },
+    { "name": "bookings.manage", "description": "Administrar reservas" },
+    { "name": "reviews.create", "description": "Crear reseñas" },
+    { "name": "reviews.moderate", "description": "Moderar reseñas" },
+    { "name": "coupons.manage", "description": "Administrar cupones" }
+  ],
+
+  "locations": [
+    {
+      "city": "Madrid",
+      "address": "Calle Gran Via 12",
+      "capacity": 20
+    },
+    {
+      "city": "Barcelona",
+      "address": "Passeig de Gracia 45",
+      "capacity": 15
+    }
+  ],
+
+  "categories": [
+    {
+      "name": "Acrílico",
+      "slug": "acrilico"
+    },
+    {
+      "name": "Acuarela",
+      "slug": "acuarela"
+    },
+    {
+      "name": "Principiantes",
+      "slug": "principiantes"
+    }
+  ],
+
+  "workshops": [
+    {
+      "title": "Paint & Wine Night",
+      "slug": "paint-wine-night",
+      "description": "Taller divertido para pintar y tomar vino",
+      "price": 45,
+      "duration": 120,
+      "availableSlots": 15
+    },
+    {
+      "title": "Acuarela para Principiantes",
+      "slug": "acuarela-principiantes",
+      "description": "Aprende acuarela desde cero",
+      "price": 35,
+      "duration": 90,
+      "availableSlots": 12
+    }
+  ],
+
+  "coupons": [
+    {
+      "code": "WELCOME10",
+      "discountType": "PERCENTAGE",
+      "discountValue": 10
+    }
+  ]
+}

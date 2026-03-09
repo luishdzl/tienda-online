@@ -1,31 +1,24 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
-import { auth } from "@/auth"; // 👈 Import auth from your v5 config
+import { auth } from "@/features/auth/auth.config";
+import { userRepository } from "@/features/users/user.repository";
+import { userHasPermission } from "@/features/users/user.permissions";
 
-export async function GET(req: Request) {
-  // 👈 Use auth() instead of getToken
-  const session = await auth(); 
+export async function GET() {
+  const session = await auth();
 
-  // Check the session user's role
-  if (!session || session.user?.role !== "ADMIN") {
+  if (!session) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  try {
-    const users = await prisma.user.findMany({
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        role: true,
-        createdAt: true,
-        updatedAt: true,
-      },
-      orderBy: { createdAt: "desc" },
-    });
+  const hasPermission = await userHasPermission(
+    session.user.id,
+    "users.manage"
+  );
 
-    return NextResponse.json({ users });
-  } catch (error) {
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+  if (!hasPermission) {
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+
+  const users = await userRepository.getAll();
+  return NextResponse.json({ users });
 }

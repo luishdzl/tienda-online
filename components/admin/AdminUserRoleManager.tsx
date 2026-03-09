@@ -1,4 +1,4 @@
-// components/AdminUserRoleManager.tsx
+// components/admin/AdminUserRoleManager.tsx
 "use client";
 
 import React, { useEffect, useState } from "react";
@@ -17,6 +17,9 @@ export default function AdminUserRoleManager() {
   const [loading, setLoading] = useState(false);
   const [changingUserId, setChangingUserId] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [allPermissions, setAllPermissions] = useState<any[]>([]);
+  const [userPermissions, setUserPermissions] = useState<any[]>([]);
+  const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
 
   async function fetchUsers() {
     setLoading(true);
@@ -58,7 +61,40 @@ export default function AdminUserRoleManager() {
       setChangingUserId(null);
     }
   }
+async function openPermissions(userId: string) {
+  setSelectedUserId(userId);
 
+  const [allRes, userRes] = await Promise.all([
+    fetch("/api/admin/permissions"),
+    fetch(`/api/admin/users/${userId}/permissions`)
+  ]);
+
+  const allData = await allRes.json();
+  const userData = await userRes.json();
+
+  setAllPermissions(allData.permissions);
+  setUserPermissions(userData.permissions);
+}
+async function togglePermission(permissionId: string) {
+  if (!selectedUserId) return;
+
+  const has = userPermissions.some(p => p.id === permissionId);
+
+  const res = await fetch(
+    `/api/admin/users/${selectedUserId}/permissions`,
+    {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        permissionId,
+        action: has ? "remove" : "add",
+      }),
+    }
+  );
+
+  const data = await res.json();
+  setUserPermissions(data.permissions);
+}
   return (
     <div className="p-4">
       <h2 className="text-2xl font-semibold mb-4">Administración de usuarios</h2>
@@ -93,6 +129,7 @@ export default function AdminUserRoleManager() {
                       >
                         Hacer admin
                       </button>
+                      
                     ) : (
                       <button
                         className="px-3 py-1 rounded bg-gray-300 text-black"
@@ -101,7 +138,31 @@ export default function AdminUserRoleManager() {
                       >
                         Quitar admin
                       </button>
+                      
                     )}
+{selectedUserId && (
+  <div className="mt-4 border p-4 rounded">
+    <h3 className="font-semibold mb-2">Permisos</h3>
+
+    {allPermissions.map((perm) => {
+      const active = userPermissions.some(p => p.id === perm.id);
+
+      return (
+        <div key={perm.id} className="flex justify-between py-1">
+          <span>{perm.name}</span>
+          <button
+            onClick={() => togglePermission(perm.id)}
+            className={`px-2 py-1 rounded ${
+              active ? "bg-red-500 text-white" : "bg-green-600 text-white"
+            }`}
+          >
+            {active ? "Quitar" : "Agregar"}
+          </button>
+        </div>
+      );
+    })}
+  </div>
+)}
                   </div>
                 </td>
               </tr>

@@ -1,53 +1,18 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
-import { auth } from "@/auth"; // 👈 Import auth
+import { auth } from "@/features/auth/auth.config";
+import { changeUserRole } from "@/features/users/user.service";
 
-type Params = { params: { id: string } };
-
-export async function PUT(req: Request, { params }: Params) {
-  // 👈 Use auth() instead of getToken
+export async function PUT(req: Request, { params }: { params: { id: string } }) {
   const session = await auth();
-
-  if (!session || session.user?.role !== "ADMIN") {
+  if (!session || session.user.role !== "ADMIN")
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+
+  const { role } = await req.json();
+
+  try {
+    const user = await changeUserRole(session.user.id, params.id, role);
+    return NextResponse.json({ user });
+  } catch (e: any) {
+    return NextResponse.json({ error: e.message }, { status: 400 });
   }
-
-  const userIdToModify = params.id;
-  const body = await req.json().catch(() => ({}));
-  const newRole = body?.role;
-
-  if (!newRole || !["ADMIN", "USER"].includes(newRole)) {
-    return NextResponse.json({ error: "Rol inválido" }, { status: 400 });
-  }
-
-  const userToModify = await prisma.user.findUnique({ where: { id: userIdToModify } });
-  if (!userToModify) {
-    return NextResponse.json({ error: "Usuario no encontrado" }, { status: 404 });
-  }
-
-  if (userToModify.role === "ADMIN" && newRole !== "ADMIN") {
-    const adminCount = await prisma.user.count({ where: { role: "ADMIN" } });
-    if (adminCount <= 1) {
-      return NextResponse.json(
-        { error: "No se puede eliminar el último administrador" },
-        { status: 400 }
-      );
-    }
-  }
-
-  // 👈 Compare against session.user.id instead of token.sub
-  if (session.user.id === userIdToModify && newRole !== "ADMIN") {
-    return NextResponse.json(
-      { error: "No puedes quitarte permisos administrativos a ti mismo" },
-      { status: 403 }
-    );
-  }
-
-  const updated = await prisma.user.update({
-    where: { id: userIdToModify },
-    data: { role: newRole as "ADMIN" | "USER" },
-    select: { id: true, email: true, name: true, role: true, updatedAt: true },
-  });
-
-  return NextResponse.json({ user: updated });
 }
